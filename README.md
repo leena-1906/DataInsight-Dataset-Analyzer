@@ -8,6 +8,7 @@ The repository is organized into two completely decoupled and self-contained app
 
 ## Features
 
+- **Built-in Sample Datasets**: Instantly explore the app without uploading a file using 3 realistic demo datasets (Sales, Student Performance, Customer Orders) with one-click loading and direct CSV downloads.
 - **Interactive CSV Upload**: Upload any CSV dataset up to 10 MB, 80 columns, and 20,000 rows with automatic header validation, UTF-8 BOM removal, and row normalization.
 - **SQLite Database Persistence**: Uploaded datasets are persisted in a local SQLite database and preserved across server restarts.
 - **Dataset Switching & Management**: Multiple datasets coexist seamlessly with one-click switching and isolated deletion.
@@ -52,7 +53,9 @@ DataInsight/
 │   │   ├── App.tsx          # Main React dashboard & data visualization component
 │   │   ├── main.tsx         # Application entry point
 │   │   ├── styles.css       # Complete UI theme and responsive styles
-│   │   └── vite-env.d.ts    # Vite environment type declarations
+│   │   ├── vite-env.d.ts    # Vite environment type declarations
+│   │   └── data/
+│   │       └── sampleDatasets.ts # Realistic sample datasets for demo exploration
 │   ├── public/              # Static public assets
 │   ├── index.html           # HTML template
 │   ├── package.json         # Frontend-only dependencies and scripts
@@ -62,7 +65,8 @@ DataInsight/
 │
 ├── backend/
 │   ├── src/
-│   │   └── server.js        # Express API routes, SQLite schema, & PapaParse logic
+│   │   ├── server.js        # Express API routes, SQLite schema, & PapaParse logic
+│   │   └── sampleDatasets.js # Server-side demo datasets and metadata
 │   ├── data/                # SQLite runtime database folder (gitignored)
 │   ├── package.json         # Backend-only dependencies and scripts
 │   └── .env.example         # Example environment variables for backend
@@ -156,9 +160,9 @@ The application will be live at: `http://localhost:5173`
 
 ## CSV Upload and Analysis Instructions
 
-1. **Upload Dataset**:
-   - Click the purple **"Upload dataset"** button in the top action bar (or the **"+"** button next to "YOUR DATASETS" in the sidebar).
-   - Choose any standard `.csv` file (limits: 10 MB, 80 columns, 20,000 rows).
+1. **Load Demo Data or Upload Dataset**:
+   - **Sample Datasets**: Click **"Load Demo Data"** (or **"Try Sample Dataset"** in the empty state or the sparkle icon in the sidebar) to open the sample dataset gallery. Select from **Sales Performance**, **Student Performance**, or **Customer Orders** to load realistic data into your workspace instantly. You can also download each sample CSV directly.
+   - **Upload Your Own CSV**: Click the purple **"Upload dataset"** button (or the **"+"** button next to "YOUR DATASETS" in the sidebar). Choose any standard `.csv` file (limits: 10 MB, 80 columns, 20,000 rows).
    - The server parses the file, calculates statistics, stores it in SQLite, and switches to it automatically.
 2. **Explore the Workspace**:
    - **Overview Tab**: Examine total records, columns, data completeness percentage, numeric trends (line/bar), category breakdown donut chart, and column statistics (mean, median, mode, min, max, unique values).
@@ -189,6 +193,9 @@ The Express backend provides clean REST endpoints:
 - `POST /api/datasets` — Accepts multipart CSV upload (`file` field)
 - `GET /api/datasets/:id/export` — Streams dataset as an attachment CSV file
 - `DELETE /api/datasets/:id` — Deletes dataset by ID
+- `GET /api/samples` — Returns metadata for available demo sample datasets
+- `GET /api/samples/:id/download` — Downloads the raw sample CSV file
+- `POST /api/samples/:id/load` — Direct server-side parsing and SQLite storage for the selected sample dataset
 
 ---
 

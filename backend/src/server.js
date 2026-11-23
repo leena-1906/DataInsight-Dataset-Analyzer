@@ -5,6 +5,7 @@ const Database = require("better-sqlite3");
 const Papa = require("papaparse");
 const path = require("path");
 const fs = require("fs");
+const { sampleDatasets } = require("./sampleDatasets");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -140,6 +141,37 @@ app.get("/api/datasets/:id/export", (req, res) => {
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", `attachment; filename="${item.name.replace(/[^a-z0-9-_]/gi,"_")}-clean.csv"`);
   res.send(csv);
+});
+
+// Sample demo datasets endpoints
+app.get("/api/samples", (_, res) => {
+  res.json(sampleDatasets.map(s => ({
+    id: s.id,
+    name: s.name,
+    filename: s.filename,
+    category: s.category,
+    description: s.description,
+    columns: s.columns,
+    rowCount: s.rowCount
+  })));
+});
+
+app.get("/api/samples/:id/download", (req, res) => {
+  const sample = sampleDatasets.find(s => s.id === req.params.id);
+  if (!sample) return res.status(404).json({ error: "Sample dataset not found" });
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", `attachment; filename="${sample.filename}"`);
+  res.send(sample.csvContent.trim());
+});
+
+app.post("/api/samples/:id/load", (req, res) => {
+  const sample = sampleDatasets.find(s => s.id === req.params.id);
+  if (!sample) return res.status(404).json({ error: "Sample dataset not found" });
+  const parsed = Papa.parse(sample.csvContent.trim(), { header: true, skipEmptyLines: "greedy" });
+  const rows = normalizeRows(parsed.data);
+  const columns = parsed.meta.fields || [];
+  const item = insertDataset(sample.name, columns, rows);
+  res.status(201).json({ ...publicDataset(item), rows: item.rows.slice(0, 500), totalRows: item.rows.length });
 });
 
 // Centralized error handling middleware for Multer and server errors

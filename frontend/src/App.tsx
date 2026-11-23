@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CloudUpload, Database, Download, FileSpreadsheet, Filter, LayoutDashboard, Menu, MoreHorizontal, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { SAMPLE_DATASETS, SampleDataset } from "./data/sampleDatasets";
 
 type ColumnStat = { name:string; type:string; missing:number; unique:number; mean:number|null; median:number|null; mode:string; min:number|null; max:number|null };
 type Dataset = { id:number; name:string; createdAt:string; rowCount:number; columnCount:number; columns:string[]; summary:{stats:ColumnStat[];missing:number;duplicates:number}; rows?:Record<string,string>[]; totalRows?:number };
@@ -58,7 +59,7 @@ function findCategoricalColumn(columns: string[], stats: ColumnStat[], rows: Rec
   if (!candidates.length) return null;
 
   // Prioritize typical categorical column names
-  const CAT_KEYWORDS = /(^|_|\b)(type|segment|group|genre|status|department|class|tier|region|country|city|state|gender|brand|vendor|industry|priority|channel|role)($|_|\b)/i;
+  const CAT_KEYWORDS = /(^|_|\b)(type|segment|group|genre|status|department|class|tier|region|country|city|state|gender|brand|vendor|industry|priority|channel|role|grade|subject)($|_|\b)/i;
   const keywordMatch = candidates.find(c => CAT_KEYWORDS.test(c.trim()));
   if (keywordMatch) return keywordMatch;
 
@@ -89,8 +90,35 @@ export default function App() {
   const [page,setPage] = useState(1);
   const [sidebarOpen,setSidebarOpen] = useState(false);
   const [activeTab,setActiveTab] = useState("Overview");
+  const [sampleModalOpen, setSampleModalOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const pageSize = 8;
+
+  useEffect(() => {
+    if (!sampleModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSampleModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [sampleModalOpen]);
+
+  async function loadSample(sample: SampleDataset) {
+    setSampleModalOpen(false);
+    const file = new File([sample.csvContent.trim()], sample.filename, { type: "text/csv" });
+    await uploadFile(file);
+  }
+
+  function downloadSample(e: React.MouseEvent, sample: SampleDataset) {
+    e.stopPropagation();
+    const blob = new Blob([sample.csvContent.trim()], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = sample.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function loadDatasets(preferredId?:number) {
     setLoading(true);
@@ -182,7 +210,7 @@ export default function App() {
       <div className="workspace-label">WORKSPACE</div>
       <nav>{nav.map(item=><button key={item.name} className={`nav-item ${activeTab===item.name?"selected":""}`} onClick={()=>{setActiveTab(item.name);setSidebarOpen(false);}}><item.icon size={18}/><span>{item.name}</span>{item.name==="Insights"&&<span className="new-pill">NEW</span>}</button>)}</nav>
       <div className="side-divider"/>
-      <div className="workspace-label dataset-heading">YOUR DATASETS <button title="Upload dataset" onClick={()=>fileRef.current?.click()}><Plus size={15}/></button></div>
+      <div className="workspace-label dataset-heading"><span>YOUR DATASETS</span><div className="dataset-heading-actions"><button title="Try sample datasets" onClick={()=>setSampleModalOpen(true)}><Sparkles size={13}/></button><button title="Upload dataset" onClick={()=>fileRef.current?.click()}><Plus size={15}/></button></div></div>
       <div className="dataset-list">{datasets.map(d=><button key={d.id} className={`dataset-item ${active?.id===d.id?"current":""}`} onClick={()=>selectDataset(d.id)}><FileSpreadsheet size={16}/><span>{d.name}</span><small>{d.rowCount}</small></button>)}</div>
       <div className="sidebar-bottom"><div className="help-card"><div className="help-icon"><CircleHelp size={17}/></div><div><b>Need a hand?</b><span>Explore the quick guide</span></div><ChevronRight size={16}/></div><div className="profile"><div className="avatar">L</div><div className="profile-copy"><b>Leena</b><span>Free workspace</span></div><MoreHorizontal size={19}/></div></div>
     </aside>
@@ -190,10 +218,10 @@ export default function App() {
     <main className="main-area">
       <header className="topbar"><button className="hamburger" onClick={()=>setSidebarOpen(true)}><Menu/></button><div className="breadcrumb">Workspace <ChevronRight size={14}/> <b>{activeTab}</b></div><div className="top-actions"><span className="status-dot"/> <span className="saved-label">All changes saved</span><button className="icon-button" title="Notifications"><Bell size={18}/><i/></button><div className="top-avatar">L</div></div></header>
       <div className="content">
-        <div className="page-heading"><div><div className="eyebrow">DATA WORKSPACE <span> / </span> {activeTab.toUpperCase()}</div><h1>{activeTab==="Overview"?"Good afternoon, Leena":activeTab}</h1><p>{activeTab==="Overview"?"Here’s what’s happening with your data today.":activeTab==="Data explorer"?"Inspect, search and understand every row in your dataset.":"Discover patterns and useful takeaways from your data."}</p></div><div className="heading-actions"><button className="btn btn-outline" onClick={()=>active&&window.open(`${API}/datasets/${active.id}/export`,"_blank")} disabled={!active}><Download size={16}/> Export CSV</button><button className="btn btn-primary" onClick={()=>fileRef.current?.click()}><CloudUpload size={17}/> Upload dataset</button><input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={e=>uploadFile(e.target.files?.[0])}/></div></div>
+        <div className="page-heading"><div><div className="eyebrow">DATA WORKSPACE <span> / </span> {activeTab.toUpperCase()}</div><h1>{activeTab==="Overview"?"Good afternoon, Leena":activeTab}</h1><p>{activeTab==="Overview"?"Here’s what’s happening with your data today.":activeTab==="Data explorer"?"Inspect, search and understand every row in your dataset.":"Discover patterns and useful takeaways from your data."}</p></div><div className="heading-actions"><button className="btn btn-outline" onClick={()=>setSampleModalOpen(true)}><Sparkles size={15}/> Load Demo Data</button><button className="btn btn-outline" onClick={()=>active&&window.open(`${API}/datasets/${active.id}/export`,"_blank")} disabled={!active}><Download size={16}/> Export CSV</button><button className="btn btn-primary" onClick={()=>fileRef.current?.click()}><CloudUpload size={17}/> Upload dataset</button><input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={e=>uploadFile(e.target.files?.[0])}/></div></div>
         {error&&<div className="alert"><span>{error}</span><button onClick={()=>setError("")}><X size={16}/></button></div>}
         {uploading&&<div className="upload-progress"><span/> Uploading and analyzing your CSV…</div>}
-        {loading?<div className="loading">Preparing your workspace…</div>:!active?<div className="empty-state"><div className="empty-icon"><FileSpreadsheet size={30}/></div><h2>Start with your first dataset</h2><p>Upload a CSV file or add a sample dataset to explore your data.</p><button className="btn btn-primary" onClick={()=>fileRef.current?.click()}><CloudUpload size={17}/> Upload CSV</button></div>:<>
+        {loading?<div className="loading">Preparing your workspace…</div>:!active?<div className="empty-state"><div className="empty-icon"><FileSpreadsheet size={30}/></div><h2>Start with your first dataset</h2><p>Upload a CSV file or choose a realistic sample dataset to explore instant analytics.</p><div className="empty-actions"><button className="btn btn-outline" onClick={()=>setSampleModalOpen(true)}><Sparkles size={16}/> Try Sample Dataset</button><button className="btn btn-primary" onClick={()=>fileRef.current?.click()}><CloudUpload size={17}/> Upload CSV</button></div></div>:<>
           <div className="dataset-banner"><div className="file-icon"><FileSpreadsheet size={20}/></div><div className="dataset-meta"><b>{activeTitle}</b><span><span className="green-dot"/> Active dataset <span className="meta-sep">·</span> {active.columnCount} columns <span className="meta-sep">·</span> Updated {new Date(active.createdAt).toLocaleDateString()}</span></div><button className="select-dataset" onClick={()=>setActiveTab("Data explorer")}>Explore data <ChevronDown size={15}/></button><button className="more-dataset" onClick={deleteDataset} title="Delete dataset"><Trash2 size={17}/></button></div>
           {activeTab==="Overview"&&<Overview active={active} completeness={completeness} numericStats={numericStats} mainNumeric={mainNumeric} chartData={chartData} categoryData={categoryData} categoryColumn={categoryColumn} stats={stats}/>}
           {activeTab==="Data explorer"&&<section className="panel table-panel"><div className="panel-heading"><div><h2>Dataset preview</h2><p>Showing {fmt(filtered.length)} matching rows · {active.columnCount} columns</p></div><div className="table-tools"><div className="search-box"><Search size={16}/><input placeholder="Search all columns…" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/></div><button className="btn btn-outline small" onClick={()=>{setQuery("");setPage(1);}}><Filter size={15}/> Clear</button></div></div><div className="table-wrap"><table><thead><tr>{active.columns.map(c=><th key={c}>{c}<span className="column-type">{stats.find(s=>s.name===c)?.type==="Numeric"?"123":"Aa"}</span></th>)}</tr></thead><tbody>{pageRows.length>0?pageRows.map((r,i)=><tr key={i}>{active.columns.map(c=><td key={c}>{String(r[c]??"")||<span className="missing">Missing</span>}</td>)}</tr>):<tr><td colSpan={active.columns.length} style={{textAlign:"center",padding:"28px",color:"#969bad",fontStyle:"italic"}}>No records found{query?` matching "${query}"`:""}.</td></tr>}</tbody></table></div><div className="table-footer"><span>Page {page} of {totalPages}</span><div><button className="page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={16}/></button><button className="page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={16}/></button></div></div></section>}
@@ -202,6 +230,52 @@ export default function App() {
         <footer>© 2026 DataInsight <span>Built for curious minds.</span><a href="https://www.papaparse.com/" target="_blank" rel="noreferrer">CSV parsing powered by PapaParse</a></footer>
       </div>
     </main>
+    {sampleModalOpen && (
+      <div className="modal-backdrop" onClick={()=>setSampleModalOpen(false)}>
+        <div className="sample-modal" onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="sample-modal-title">
+          <div className="sample-modal-header">
+            <div>
+              <h2 id="sample-modal-title">Explore Sample Datasets</h2>
+              <p>Select a pre-built realistic dataset to test analytics, charts, and data explorer instantly.</p>
+            </div>
+            <button className="sample-close-btn" onClick={()=>setSampleModalOpen(false)} aria-label="Close dialog">
+              <X size={18}/>
+            </button>
+          </div>
+          <div className="sample-grid">
+            {SAMPLE_DATASETS.map(sample => (
+              <div key={sample.id} className="sample-card">
+                <span className="sample-badge">{sample.category}</span>
+                <h3>{sample.name}</h3>
+                <p>{sample.description}</p>
+                <div className="sample-meta">
+                  <span>{sample.rowCount} records</span>
+                  <span>{sample.columns.length} columns</span>
+                </div>
+                <div className="sample-columns">
+                  <b>Columns:</b> {sample.columns.join(", ")}
+                </div>
+                <div className="sample-actions">
+                  <button
+                    className="btn btn-outline"
+                    title={`Download ${sample.filename}`}
+                    onClick={(e)=>downloadSample(e, sample)}
+                  >
+                    <Download size={14}/> Download CSV
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={()=>loadSample(sample)}
+                  >
+                    <Sparkles size={14}/> Load Dataset
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
   </div>;
 }
 
