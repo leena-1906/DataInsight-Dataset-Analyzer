@@ -1,10 +1,10 @@
-# 📊 DataInsight — Dataset Analyzer
+﻿# 📊 DataInsight — Dataset Analyzer
 
 <p align="center">
   <strong>A powerful, interactive platform for exploring, analyzing, and visualizing CSV datasets.</strong>
 </p>
 
-DataInsight is a modern, full-stack web application that transforms raw CSV data into meaningful insights. Upload datasets, explore statistics, visualize trends, discover data quality issues, and interact with your data through an intuitive dashboard.
+DataInsight is a modern full-stack web application that transforms raw CSV data into meaningful insights. Upload datasets, explore statistics, visualize trends, discover data quality issues, and interact with your data through an intuitive dashboard.
 
 Built using React, TypeScript, Node.js, Express, and SQLite, DataInsight makes data exploration simple, fast, and accessible.
 
@@ -12,16 +12,20 @@ Built using React, TypeScript, Node.js, Express, and SQLite, DataInsight makes d
 
 ## 🌐 Live Demo
 
-- - **Frontend:** [Open DataInsight](https://data-insight-dataset-analyzer.vercel.app/)
+- **Frontend:** [Open DataInsight](https://data-insight-dataset-analyzer.vercel.app/)
 - **Backend API:** [Render API](https://datainsight-dataset-analyzer.onrender.com)
 - **API Health:** [Check API Status](https://datainsight-dataset-analyzer.onrender.com/api/health)
 - **GitHub Repository:** [DataInsight Dataset Analyzer](https://github.com/leena-1906/DataInsight-Dataset-Analyzer)
 
----## 📸 Application Preview
+---
+
+## 📸 Application Preview
 
 ### Dashboard
 
-![DataInsight Dashboard](screenshots/dashboard.png)
+![DataInsight Dashboard](screenshots/Dashboard.png)
+
+---
 
 ## ✨ Features
 
@@ -100,13 +104,13 @@ Explore DataInsight without uploading your own files.
 ```text
 DataInsight
 │
-├── frontend/          # React + TypeScript application
+├── frontend/              # React + TypeScript application
 │   ├── src/
 │   ├── public/
 │   ├── package.json
 │   └── vite.config.ts
 │
-├── backend/           # Node.js + Express API
+├── backend/               # Node.js + Express API
 │   ├── src/
 │   ├── data/
 │   └── package.json
@@ -149,12 +153,6 @@ Start the backend server:
 npm run dev
 ```
 
-Backend runs at:
-
-```text
-http://localhost:4000
-```
-
 ### 3. Set Up the Frontend
 
 Open a second terminal:
@@ -165,13 +163,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at:
-
-```text
-http://localhost:5173
-```
-
-Open the frontend URL in your browser to start exploring datasets.
+Open the frontend URL shown in your terminal to start exploring datasets.
 
 ---
 
