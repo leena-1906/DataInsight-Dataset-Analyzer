@@ -73,8 +73,18 @@ function findCategoricalColumn(columns: string[], stats: ColumnStat[], rows: Rec
   return candidates[0] ?? null;
 }
 
-// Configurable API base URL: respects VITE_API_URL env variable or defaults to "/api" (Vite proxy)
-const rawApiUrl = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+// Configurable API base URL: respects VITE_API_URL or VITE_BACKEND_URL.
+// Defaults to the deployed Render backend in production and "/api" proxy in local dev.
+const PRODUCTION_API_URL = "https://datainsight-dataset-analyzer.onrender.com";
+
+const envUrl = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  ""
+).trim().replace(/\/+$/, "");
+
+const rawApiUrl = envUrl || (import.meta.env.PROD ? PRODUCTION_API_URL : "");
+
 const API = rawApiUrl
   ? (rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl}/api`)
   : "/api";
@@ -120,7 +130,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
-  async function loadDatasets(preferredId?:number) {
+  async function loadDatasets(preferredId?:number, isRetry = false) {
     setLoading(true);
     try {
       const res = await fetch(`${API}/datasets`);
@@ -128,10 +138,21 @@ export default function App() {
       const list:Dataset[] = await res.json();
       if (!Array.isArray(list)) throw new Error("Invalid dataset response format.");
       setDatasets(list);
+      setError("");
       const chosen = list.find(d=>d.id===preferredId) || list[0];
       if (chosen) await selectDataset(chosen.id, list);
       else { setActive(null); setRows([]); }
-    } catch { setError("Can't connect to the API. Start the backend with npm run dev."); }
+    } catch {
+      if (import.meta.env.PROD && !isRetry) {
+        setTimeout(() => loadDatasets(preferredId, true), 3000);
+        return;
+      }
+      setError(
+        import.meta.env.PROD
+          ? "Can't connect to the backend server. Render may take 30–50s to wake up on free tier—please retry or refresh."
+          : "Can't connect to the API. Start the backend with npm run dev."
+      );
+    }
     finally { setLoading(false); }
   }
   async function selectDataset(id:number, list=datasets) {
@@ -219,7 +240,7 @@ export default function App() {
       <header className="topbar"><button className="hamburger" onClick={()=>setSidebarOpen(true)}><Menu/></button><div className="breadcrumb">Workspace <ChevronRight size={14}/> <b>{activeTab}</b></div><div className="top-actions"><span className="status-dot"/> <span className="saved-label">All changes saved</span><button className="icon-button" title="Notifications"><Bell size={18}/><i/></button><div className="top-avatar">L</div></div></header>
       <div className="content">
         <div className="page-heading"><div><div className="eyebrow">DATA WORKSPACE <span> / </span> {activeTab.toUpperCase()}</div><h1>{activeTab==="Overview"?"Good afternoon, Leena":activeTab}</h1><p>{activeTab==="Overview"?"Here’s what’s happening with your data today.":activeTab==="Data explorer"?"Inspect, search and understand every row in your dataset.":"Discover patterns and useful takeaways from your data."}</p></div><div className="heading-actions"><button className="btn btn-outline" onClick={()=>setSampleModalOpen(true)}><Sparkles size={15}/> Load Demo Data</button><button className="btn btn-outline" onClick={()=>active&&window.open(`${API}/datasets/${active.id}/export`,"_blank")} disabled={!active}><Download size={16}/> Export CSV</button><button className="btn btn-primary" onClick={()=>fileRef.current?.click()}><CloudUpload size={17}/> Upload dataset</button><input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={e=>uploadFile(e.target.files?.[0])}/></div></div>
-        {error&&<div className="alert"><span>{error}</span><button onClick={()=>setError("")}><X size={16}/></button></div>}
+        {error&&<div className="alert"><span>{error}</span><div style={{display:"flex",gap:"8px",alignItems:"center"}}><button className="alert-retry" style={{border:0,background:"#fff",padding:"3px 9px",borderRadius:"5px",fontSize:"10px",fontWeight:700,cursor:"pointer",color:"#b75a50",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}} onClick={()=>loadDatasets()}>Retry</button><button onClick={()=>setError("")}><X size={16}/></button></div></div>}
         {uploading&&<div className="upload-progress"><span/> Uploading and analyzing your CSV…</div>}
         {loading?<div className="loading">Preparing your workspace…</div>:!active?<div className="empty-state"><div className="empty-icon"><FileSpreadsheet size={30}/></div><h2>Start with your first dataset</h2><p>Upload a CSV file or choose a realistic sample dataset to explore instant analytics.</p><div className="empty-actions"><button className="btn btn-outline" onClick={()=>setSampleModalOpen(true)}><Sparkles size={16}/> Try Sample Dataset</button><button className="btn btn-primary" onClick={()=>fileRef.current?.click()}><CloudUpload size={17}/> Upload CSV</button></div></div>:<>
           <div className="dataset-banner"><div className="file-icon"><FileSpreadsheet size={20}/></div><div className="dataset-meta"><b>{activeTitle}</b><span><span className="green-dot"/> Active dataset <span className="meta-sep">·</span> {active.columnCount} columns <span className="meta-sep">·</span> Updated {new Date(active.createdAt).toLocaleDateString()}</span></div><button className="select-dataset" onClick={()=>setActiveTab("Data explorer")}>Explore data <ChevronDown size={15}/></button><button className="more-dataset" onClick={deleteDataset} title="Delete dataset"><Trash2 size={17}/></button></div>

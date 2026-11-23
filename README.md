@@ -61,6 +61,7 @@ DataInsight/
 │   ├── package.json         # Frontend-only dependencies and scripts
 │   ├── tsconfig.json        # TypeScript configuration
 │   ├── vite.config.ts       # Vite configuration with API reverse proxy
+│   ├── vercel.json          # Vercel SPA routing and proxy rewrites
 │   └── .env.example         # Example environment variables for frontend
 │
 ├── backend/
@@ -155,6 +156,24 @@ The application will be live at: `http://localhost:5173`
 2. **Start Frontend**: In terminal 2, run `cd frontend && npm run dev`.
 3. Open your browser and go to: **`http://localhost:5173`**.
 4. The dashboard will automatically connect to the backend and display your saved datasets.
+
+---
+
+## Deployment
+
+### Backend (Render)
+- **Deployed URL**: `https://datainsight-dataset-analyzer.onrender.com`
+- **Health Check**: `https://datainsight-dataset-analyzer.onrender.com/api/health`
+- **Build Command**: `npm install`
+- **Start Command**: `npm start`
+
+### Frontend (Vercel)
+- **Framework Preset**: Vite
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variables**:
+  - `VITE_API_URL` (Optional): Set to `https://datainsight-dataset-analyzer.onrender.com/api` (The application automatically defaults to this URL in production builds, so it works out-of-the-box).
 
 ---
 
