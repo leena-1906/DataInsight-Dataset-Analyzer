@@ -1,5 +1,6 @@
 import {
   Activity,
+  BarChart3,
   ChevronRight,
   CircleHelp,
   Database,
@@ -28,8 +29,9 @@ interface SidebarProps {
 
 const NAV_ITEMS: { name: WorkspaceTab; icon: typeof LayoutDashboard; badge?: string }[] = [
   { name: "Overview", icon: LayoutDashboard },
+  { name: "Data analysis", icon: BarChart3, badge: "PRO" },
   { name: "Data explorer", icon: Database },
-  { name: "Insights", icon: Sparkles, badge: "NEW" }
+  { name: "Insights", icon: Sparkles }
 ];
 
 export function Sidebar({

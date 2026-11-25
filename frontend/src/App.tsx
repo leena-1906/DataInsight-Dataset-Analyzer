@@ -10,6 +10,7 @@ import {
   X
 } from "lucide-react";
 import { ColumnInsightsTable } from "./components/ColumnInsightsTable";
+import { DataAnalysisDashboard } from "./components/DataAnalysisDashboard";
 import { DataExplorer } from "./components/DataExplorer";
 import { DatasetBanner } from "./components/DatasetBanner";
 import { InsightsView } from "./components/InsightsView";
@@ -151,9 +152,11 @@ export default function App() {
   const pageSubtitle =
     activeTab === "Overview"
       ? "Interactive visualizations, dataset metrics, and column statistics backed by SQLite."
-      : activeTab === "Data explorer"
-        ? "Search, sort, paginate, and export stored dataset records."
-        : "Discover automated patterns and data quality insights.";
+      : activeTab === "Data analysis"
+        ? "Deep statistical summaries, data quality checks, distributions, and automated insights."
+        : activeTab === "Data explorer"
+          ? "Search, sort, paginate, and export stored dataset records."
+          : "Discover automated patterns and data quality insights.";
 
   return (
     <div className="app-shell">
@@ -325,6 +328,8 @@ export default function App() {
                   <ColumnInsightsTable stats={stats} />
                 </>
               )}
+
+              {activeTab === "Data analysis" && <DataAnalysisDashboard dataset={active} />}
 
               {activeTab === "Data explorer" && (
                 <DataExplorer

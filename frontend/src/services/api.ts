@@ -2,6 +2,7 @@ import {
   AggregationType,
   ChartResponse,
   Dataset,
+  DatasetAnalysis,
   RecordsResponse,
   SampleDatasetInfo
 } from "../types/dataset";
@@ -56,6 +57,25 @@ export async function fetchDatasets(): Promise<Dataset[]> {
 
 export function fetchDatasetDetail(id: number): Promise<Dataset> {
   return requestJson<Dataset>(`/datasets/${id}`);
+}
+
+export interface AnalysisQueryParams {
+  numericCol?: string;
+  categoryCol?: string;
+  signal?: AbortSignal;
+}
+
+export function fetchDatasetAnalysis(
+  id: number,
+  params: AnalysisQueryParams = {}
+): Promise<DatasetAnalysis> {
+  const qs = new URLSearchParams();
+  if (params.numericCol) qs.set("numericCol", params.numericCol);
+  if (params.categoryCol) qs.set("categoryCol", params.categoryCol);
+  const query = qs.toString();
+  return requestJson<DatasetAnalysis>(`/datasets/${id}/analysis${query ? `?${query}` : ""}`, {
+    signal: params.signal
+  });
 }
 
 export interface RecordsQueryParams {

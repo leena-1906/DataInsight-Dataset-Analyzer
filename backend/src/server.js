@@ -6,6 +6,7 @@ const Papa = require("papaparse");
 const path = require("path");
 const fs = require("fs");
 const { sampleDatasets } = require("./sampleDatasets");
+const { parseNumericValue, summarize, analyzeDataset } = require("./analysis");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -38,53 +39,8 @@ function safeJsonParse(value, fallback) {
   }
 }
 
-function parseNumericValue(value) {
-  if (value === null || value === undefined) return NaN;
-  const trimmed = String(value).trim();
-  if (trimmed === "") return NaN;
-  const num = Number(trimmed.replace(/,/g, ""));
-  return Number.isFinite(num) ? num : NaN;
-}
-
 function normalizeRows(rows) {
   return rows.filter(row => row && Object.values(row).some(v => String(v ?? "").trim() !== ""));
-}
-
-function numericValues(values) {
-  return values.map(parseNumericValue).filter(Number.isFinite);
-}
-
-function summarize(columns, rows) {
-  const stats = columns.map(column => {
-    const vals = rows.map(r => r[column]);
-    const nums = numericValues(vals);
-    const nonEmptyCount = vals.filter(v => v !== "" && v !== null && v !== undefined && String(v).trim() !== "").length;
-    const missing = vals.length - nonEmptyCount;
-    const counts = new Map();
-    vals.forEach(v => {
-      const str = v === null || v === undefined ? "" : String(v).trim();
-      if (str !== "") counts.set(str, (counts.get(str) || 0) + 1);
-    });
-    const mode = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
-    const sorted = [...nums].sort((a, b) => a - b);
-    const median = sorted.length
-      ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
-      : null;
-    const mean = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
-    return {
-      name: column,
-      type: nums.length > 0 && nonEmptyCount > 0 && nums.length >= nonEmptyCount * 0.7 ? "Numeric" : "Text",
-      missing,
-      unique: counts.size,
-      mean,
-      median,
-      mode,
-      min: sorted[0] ?? null,
-      max: sorted.at(-1) ?? null
-    };
-  });
-  const missing = stats.reduce((s, x) => s + x.missing, 0);
-  return { stats, missing, duplicates: rows.length - new Set(rows.map(r => JSON.stringify(r))).size };
 }
 
 function hydrateDatasetRow(item) {
@@ -294,6 +250,14 @@ app.get("/api/datasets/:id", (req, res) => {
   const requestedLimit = Number(req.query.limit);
   const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(20000, requestedLimit) : 500;
   res.json({ ...publicDataset(item), rows: item.rows.slice(0, limit), totalRows: item.rows.length });
+});
+
+app.get("/api/datasets/:id/analysis", (req, res) => {
+  const item = getDataset(req.params.id);
+  if (!item) return res.status(404).json({ error: "Dataset not found" });
+  const numericCol = typeof req.query.numericCol === "string" ? req.query.numericCol : "";
+  const categoryCol = typeof req.query.categoryCol === "string" ? req.query.categoryCol : "";
+  res.json(analyzeDataset(item, { numericCol, categoryCol }));
 });
 
 app.get("/api/datasets/:id/records", (req, res) => {
